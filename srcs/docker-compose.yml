@@ -1,0 +1,92 @@
+services:
+  mariadb:
+    container_name: mariadb
+    image: mariadb:inception
+    build: ./requirements/mariadb/.
+    pull_policy: never
+    restart: unless-stopped
+    expose:
+      - 3306
+    networks:
+      intra:
+        ipv4_address: 172.16.238.5
+    volumes:
+      - wp-db:/var/lib/mysql/data
+    environment:
+      - DB_ADMIN=${DB_ADMIN}
+      - DB_ADMIN_PWD=${DB_ADMIN_PWD}
+      - DB_USER=${DB_USER}
+      - DB_USER_PWD=${DB_USER_PWD}
+      - DB_TABLE_WORDPRESS=${DB_TABLE_WORDPRESS}
+      - WP_DB_NAME=${WP_DB_NAME}
+    # hostname: "mariadb"
+
+  nginx:
+    container_name: nginx
+    image: nginx:inception
+    build: ./requirements/nginx/.
+    pull_policy: never
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    networks:
+      intra:
+        ipv4_address: 172.16.238.2
+    volumes:
+      - wp-webfiles:/var/www/html
+    # hostname: "nginx"
+
+  wordpress:
+    container_name: wordpress
+    image: wordpress:inception
+    build: ./requirements/wordpress/.
+    pull_policy: never
+    restart: unless-stopped
+    expose:
+      - 9000
+    networks:
+      intra:
+        ipv4_address: 172.16.238.4
+    volumes:
+      - wp-webfiles:/var/www/html
+    depends_on:
+      - mariadb
+    # hostname: "wordpress"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_TABLE_WORDPRESS=${DB_TABLE_WORDPRESS}
+      - DB_USER=${DB_USER}
+      - DB_USER_PWD=${DB_USER_PWD}
+      - WP_URL=${WP_URL}
+      - WP_TITLE=${WP_TITLE}
+      - WP_ADMIN=${WP_ADMIN}
+      - WP_ADMIN_PWD=${WP_ADMIN_PWD}
+      - WP_ADMIN_EMAIL=${WP_ADMIN_EMAIL}
+      - WP_USER=${WP_USER}
+      - WP_USER_PWD=${WP_USER_PWD}
+      - WP_USER_EMAIL=${WP_USER_EMAIL}
+      - WP_CHARSET=${WP_CHARSET}
+      - WP_COLLATE=${WP_COLLATE}
+      - WP_DB_NAME=${WP_DB_NAME}
+
+
+volumes:
+  wp-db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${VOLUME_PATH}/data/wp-db
+  wp-webfiles:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${VOLUME_PATH}/data/wp-webfiles
+
+networks:
+  intra:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.238.0/24"
